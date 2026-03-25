@@ -1,0 +1,2 @@
+# FNLink
+Redirect chain pages
