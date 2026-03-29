@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Get Your Code</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{min-height:100vh;background:#0d0d0d;color:#f0f0f0;font-family:'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;padding:20px}
+  .card{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:16px;padding:40px 32px;max-width:420px;width:100%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.4)}
+  .label{font-size:13px;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px}
+  .code-box{font-size:36px;font-weight:700;letter-spacing:8px;font-family:'Courier New',monospace;color:#fff;background:#111;border:1px solid #333;border-radius:10px;padding:18px 12px;margin:0 auto 8px;min-width:260px;display:none}
+  .expire-bar-wrap{background:#222;border-radius:4px;height:4px;margin:10px 0 20px;overflow:hidden}
+  .expire-bar{height:100%;background:#e74c3c;border-radius:4px;transition:width 1s linear;width:100%}
+  .expire-text{font-size:12px;color:#e74c3c;margin-bottom:24px;display:none}
+  .instruction{font-size:14px;color:#bbb;margin-bottom:24px;line-height:1.6}
+  .instruction strong{color:#fff}
+  #btn-copy{background:#2ecc71;color:#000;border:none;border-radius:10px;padding:14px 36px;font-size:16px;font-weight:700;cursor:pointer;letter-spacing:1px;transition:background .2s,transform .1s;width:100%;margin-bottom:16px;display:none}
+  #btn-copy:hover{background:#27ae60}
+  #btn-copy:active{transform:scale(0.97)}
+  #btn-copy.copied{background:#27ae60;pointer-events:none}
+  .countdown-wrap{font-size:13px;color:#666;display:none}
+  .countdown-wrap span{color:#aaa;font-weight:600}
+  #loading-msg{font-size:15px;color:#aaa;letter-spacing:1px;margin-bottom:8px}
+  #error-msg{display:none;font-size:13px;color:#e74c3c;margin-top:8px}
+  #expired-msg{display:none;color:#e74c3c;font-size:14px;margin-top:16px}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="label">Your Short Code</div>
+  <div id="loading-msg">⏳ Generating code...</div>
+  <div class="code-box" id="shortcode">------</div>
+  <div class="expire-bar-wrap"><div class="expire-bar" id="expire-bar"></div></div>
+  <div class="expire-text" id="expire-text">Expires in 5:00</div>
+  <div class="instruction">Copy the code above, then paste it on the <strong>Get Key</strong> page to receive your key.</div>
+  <button id="btn-copy" onclick="copyCode()">&#128203; COPY CODE</button>
+  <div class="countdown-wrap" id="auto-redirect-wrap">Auto redirect in <span id="countdown">30</span>s</div>
+  <div id="error-msg"></div>
+  <div id="expired-msg">&#9203; Code expired. <a href="javascript:location.reload()" style="color:#e74c3c;">Generate new code</a></div>
+</div>
+<script>
+(function(){
+  var _=function(c){return c.split(",").map(Number).map(function(x){return String.fromCharCode(x)}).join("")};
+  var GETKEY_URL = _("104,116,116,112,115,58,47,47,90,111,120,117,52,75,46,103,105,116,104,117,98,46,105,111,47,70,78,71,101,116,75,101,121,63,108,97,110,100,101,100,61,49");
+  var SERVER_URL  = _("104,116,116,112,115,58,47,47,102,110,45,107,101,121,45,115,101,114,118,101,114,46,118,101,114,99,101,108,46,97,112,112,47,97,112,105,47,107,101,121");
+  var CODE_TTL = 5*60*1000, AUTO_REDIR = 30;
+  var code = null, endMs = null, expired = false, autoSec = AUTO_REDIR;
+  var expInt = null, autoInt = null;
+
+  // ── Fetch kode REAL dari server ──
+  fetch(SERVER_URL + "?action=gen_code", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json, text/plain, */*",
+      "Accept-Language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
+      "Cache-Control": "no-cache"
+    },
+    body: JSON.stringify({hours: 6, ts: Date.now()})
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    document.getElementById("loading-msg").style.display = "none";
+    if (!data.ok || !data.code) {
+      var em = document.getElementById("error-msg");
+      em.style.display = "block";
+      em.textContent = "Failed to generate code. Please reload.";
+      return;
+    }
+    code = data.code;
+    endMs = Date.now() + CODE_TTL;
+
+    var sc = document.getElementById("shortcode");
+    sc.textContent = code;
+    sc.style.display = "inline-block";
+    document.getElementById("expire-text").style.display = "block";
+    document.getElementById("btn-copy").style.display = "block";
+    document.getElementById("auto-redirect-wrap").style.display = "block";
+
+    updateExpire();
+    expInt  = setInterval(function() { updateExpire(); if (expired) clearInterval(expInt); }, 1000);
+    var cdEl = document.getElementById("countdown");
+    autoInt = setInterval(function() {
+      if (expired) { clearInterval(autoInt); return; }
+      autoSec--; cdEl.textContent = autoSec;
+      if (autoSec <= 0) { clearInterval(autoInt); window.location.replace(GETKEY_URL); }
+    }, 1000);
+  })
+  .catch(function() {
+    document.getElementById("loading-msg").textContent = "Connection error. Please reload.";
+  });
+
+  var bar = document.getElementById("expire-bar");
+  var expTxt = document.getElementById("expire-text");
+
+  function updateExpire() {
+    if (!endMs) return;
+    var rem = endMs - Date.now();
+    if (rem <= 0) {
+      bar.style.width = "0%";
+      expTxt.textContent = "Code expired!";
+      document.getElementById("shortcode").style.color = "#555";
+      document.getElementById("btn-copy").style.display = "none";
+      document.getElementById("auto-redirect-wrap").style.display = "none";
+      document.getElementById("expired-msg").style.display = "block";
+      expired = true; return;
+    }
+    bar.style.width = (rem / CODE_TTL * 100) + "%";
+    var m = Math.floor(rem / 60000), s = Math.floor((rem % 60000) / 1000);
+    expTxt.textContent = "Expires in " + m + ":" + (s < 10 ? "0" : "") + s;
+  }
+
+  window.copyCode = function() {
+    if (expired || !code) return;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(code).catch(function() {});
+    } else {
+      var t = document.createElement("textarea");
+      t.value = code; document.body.appendChild(t); t.select();
+      document.execCommand("copy"); document.body.removeChild(t);
+    }
+    var btn = document.getElementById("btn-copy");
+    btn.textContent = "✅ COPIED! Redirecting...";
+    btn.classList.add("copied");
+    clearInterval(autoInt);
+    document.getElementById("auto-redirect-wrap").style.display = "none";
+    setTimeout(function() { window.location.replace(GETKEY_URL); }, 1200);
+  };
+})();
+</script>
+</body>
+</html>
