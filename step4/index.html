@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Short Code</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0f0f0f;display:flex;align-items:center;justify-content:center;height:100vh;font-family:monospace;color:#fff;flex-direction:column;gap:12px;padding:20px}
+.msg{opacity:.5;font-size:12px;letter-spacing:2px;text-align:center}
+.warn{color:#ffbb00;font-size:11px;letter-spacing:1px;text-align:center;opacity:.7}
+</style>
+</head>
+<body>
+<p class="msg">loading short code...</p>
+<p class="warn">6-DIGIT CODE (3H)</p>
+<script>
+(function(){
+  // Ambil fn_pending dari localStorage (disimpan saat preflight)
+  var raw = localStorage.getItem("fn_pending");
+  if (!raw) {
+    // Tidak ada pending token — redirect ke FNGetKey tanpa kode
+    window.location.replace("https://fn-key-server.vercel.app/api/key?action=shortcode_generate&s=&h=3");
+    return;
+  }
+  var pd;
+  try { pd = JSON.parse(raw); } catch(e) {
+    window.location.replace("https://fn-key-server.vercel.app/api/key?action=shortcode_generate&s=&h=3"); return;
+  }
+  if (!pd.token || !pd.hmac || Date.now() > pd.expiry) {
+    localStorage.removeItem("fn_pending");
+    window.location.replace("https://fn-key-server.vercel.app/api/key?action=shortcode_generate&s=&h=3"); return;
+  }
+  // Jangan hapus fn_pending dulu — server yang akan mark token claimed
+  // Redirect ke server shortcode_generate dengan token & hmac di URL
+  var base = "https://fn-key-server.vercel.app/api/key?action=shortcode_generate&s=&h=3";
+  var url = base + "&pt=" + encodeURIComponent(pd.token) + "&ph=" + encodeURIComponent(pd.hmac);
+  window.location.replace(url);
+})();
+</script>
+</body>
+</html>
