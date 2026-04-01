@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Get Short Code — Fake Ninja</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet"/>
+<style>
+  :root{--bg:#060608;--card:#0d0d12;--border:#1a1a24;--accent:#00e5ff;--green:#00ff88;--warn:#ffbb00;--red:#ff3355;--text:#c8cdd8;--dim:#454a58}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{min-height:100vh;background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;display:flex;align-items:center;justify-content:center;padding:20px 16px}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.025) 1px,transparent 1px);background-size:36px 36px;pointer-events:none}
+  .wrap{width:100%;max-width:400px;display:flex;flex-direction:column;gap:10px}
+  .header{text-align:center;padding:4px 0 8px}
+  .logo{font-size:22px;font-weight:700;letter-spacing:5px;color:#fff}.logo span{color:var(--accent)}
+  .sub{font-size:9px;color:var(--dim);letter-spacing:3px;margin-top:4px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px 18px;display:flex;flex-direction:column;gap:12px}
+  .card-label{font-size:8px;font-weight:700;letter-spacing:3px;color:var(--dim);text-transform:uppercase}
+  /* State: get code */
+  #s-get{display:flex;flex-direction:column;gap:10px}
+  .btn{width:100%;padding:13px;border:none;border-radius:6px;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:8px}
+  .btn-warn{background:transparent;border:1px solid var(--warn);color:var(--warn)}.btn-warn:hover{background:rgba(255,187,0,.07)}
+  .btn-acc{background:transparent;border:1px solid var(--accent);color:var(--accent)}.btn-acc:hover{background:rgba(0,229,255,.07)}
+  .btn:disabled{opacity:.35;pointer-events:none;border-color:var(--dim);color:var(--dim)}
+  .info-txt{font-size:11px;font-family:'Share Tech Mono',monospace;color:var(--dim);text-align:center;line-height:1.6}
+  /* State: loading */
+  #s-load{display:none;flex-direction:column;align-items:center;gap:10px;padding:16px 0}
+  .spin{width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .load-txt{font-size:12px;font-family:'Share Tech Mono',monospace;color:var(--dim);letter-spacing:2px}
+  /* State: code */
+  #s-code{display:none;flex-direction:column;gap:10px;text-align:center}
+  .sc-label{font-size:9px;font-family:'Share Tech Mono',monospace;color:var(--dim);letter-spacing:2px}
+  .sc-box{background:#000;border:2px solid var(--warn);border-radius:8px;padding:18px 10px;font-family:'Share Tech Mono',monospace;font-size:36px;font-weight:700;color:var(--warn);letter-spacing:10px;animation:glow 2s infinite;word-break:break-all}
+  @keyframes glow{0%,100%{box-shadow:0 0 16px rgba(255,187,0,.15)}50%{box-shadow:0 0 36px rgba(255,187,0,.4)}}
+  .exp-wrap{background:#1a1a24;border-radius:4px;height:3px;overflow:hidden}
+  .exp-bar{height:100%;background:var(--green);border-radius:4px;transition:width 1s linear}
+  .exp-txt{font-size:11px;font-family:'Share Tech Mono',monospace;color:var(--dim)}
+  .btn-copy{background:var(--green);color:#000;border:none;border-radius:6px;padding:13px;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;cursor:pointer;width:100%;transition:all .18s}
+  .btn-copy:hover{filter:brightness(1.1)}.btn-copy.done{background:var(--accent);pointer-events:none}
+  .auto-txt{font-size:11px;font-family:'Share Tech Mono',monospace;color:var(--dim)}
+  /* State: expired */
+  #s-exp{display:none;text-align:center;padding:10px 0;color:var(--red);font-size:12px;font-family:'Share Tech Mono',monospace}
+  /* Error */
+  .err-txt{font-size:11px;font-family:'Share Tech Mono',monospace;color:var(--red);text-align:center;min-height:14px}
+  /* Divider */
+  .div-row{display:flex;align-items:center;gap:8px}
+  .div-line{flex:1;height:1px;background:var(--border)}
+  .div-lbl{font-size:9px;color:var(--dim);letter-spacing:2px;font-family:'Share Tech Mono',monospace;white-space:nowrap}
+  /* Redeem input */
+  .redeem-row{display:flex;gap:8px}
+  .code-inp{flex:1;background:#000;border:1px solid var(--border);border-radius:6px;padding:11px 12px;font-family:'Share Tech Mono',monospace;font-size:16px;color:var(--accent);letter-spacing:4px;text-align:center;text-transform:uppercase;outline:none;transition:border-color .18s}
+  .code-inp::placeholder{color:var(--dim);font-size:11px;letter-spacing:1px;text-transform:none}
+  .code-inp:focus{border-color:var(--accent)}.code-inp.bad{border-color:var(--red)}
+  .btn-rdm{background:transparent;border:1px solid var(--green);color:var(--green);border-radius:6px;padding:11px 14px;font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .18s;white-space:nowrap}
+  .btn-rdm:hover{background:rgba(0,255,136,.07)}.btn-rdm:disabled{opacity:.35;pointer-events:none}
+  .rdm-st{font-size:11px;font-family:'Share Tech Mono',monospace;text-align:center;min-height:14px}
+  .footer{text-align:center;font-size:9px;color:#1e1e24;letter-spacing:1px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="logo">FAKE <span>NINJA</span></div>
+    <div class="sub">STEP — GET SHORT CODE · 6H · 9 CHARS</div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Short Code</div>
+
+    <!-- GET state -->
+    <div id="s-get">
+      <div class="info-txt">
+        Tap tombol untuk generate short code 9 karakter.<br>
+        Selesaikan dulu semua task Linkvertise.
+      </div>
+      <button class="btn btn-warn" id="btn-gen" onclick="doGen()">
+        🎲 &nbsp;GENERATE SHORT CODE
+      </button>
+    </div>
+
+    <!-- LOAD state -->
+    <div id="s-load">
+      <div class="spin"></div>
+      <div class="load-txt">GENERATING...</div>
+    </div>
+
+    <!-- CODE state -->
+    <div id="s-code">
+      <div class="sc-label">SHORT CODE KAMU · 9 KARAKTER · EXP 5 MENIT</div>
+      <div class="sc-box" id="sc-val">—————————</div>
+      <div class="exp-wrap"><div class="exp-bar" id="exp-bar"></div></div>
+      <div class="exp-txt" id="exp-txt">Expires in 5:00</div>
+      <button class="btn-copy" id="btn-copy" onclick="doCopy()">📋 &nbsp;COPY & BUKA GET KEY</button>
+      <div class="auto-txt" id="auto-txt">Auto buka Get Key dalam <b id="auto-n">30</b>s</div>
+    </div>
+
+    <!-- EXPIRED state -->
+    <div id="s-exp">
+      ⏱ Code expired.<br>
+      <a href="javascript:location.reload()" style="color:var(--red)">Generate ulang</a>
+    </div>
+
+    <div class="err-txt" id="err-txt"></div>
+  </div>
+
+  <!-- Already have code? -->
+  <div class="card">
+    <div class="card-label">Sudah Punya Code?</div>
+    <div class="div-row">
+      <div class="div-line"></div>
+      <div class="div-lbl">MASUKKAN CODE DI BAWAH</div>
+      <div class="div-line"></div>
+    </div>
+    <div class="redeem-row">
+      <input class="code-inp" id="code-inp" type="text" maxlength="9"
+        placeholder="6 atau 9 karakter"
+        oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"
+        autocomplete="off" spellcheck="false"/>
+      <button class="btn-rdm" id="btn-rdm" onclick="doRedeem()">GET KEY</button>
+    </div>
+    <div class="rdm-st" id="rdm-st"></div>
+  </div>
+
+  <div class="footer">t.me/fakelagreborn</div>
+</div>
+
+<script>
+(function(){
+  var D=function(c){return c.split(",").map(Number).map(function(x){return String.fromCharCode(x)}).join("")};
+  var GETKEY = D("104,116,116,112,115,58,47,47,90,111,120,117,52,75,46,103,105,116,104,117,98,46,105,111,47,70,78,71,101,116,75,101,121,63,108,97,110,100,101,100,61,49");
+  var SERVER = D("104,116,116,112,115,58,47,47,102,110,45,107,101,121,45,115,101,114,118,101,114,46,118,101,114,99,101,108,46,97,112,112,47,97,112,105,47,107,101,121");
+  var TTL_MS = 5*60*1000;
+
+  var code=null, endMs=null, dead=false, autoN=30;
+  var expTimer=null, autoTimer=null;
+
+  function getFingerprint(){
+    var s=localStorage.getItem('fn_fp');
+    if(s&&s.startsWith('FP'))return s;
+    var raw=[navigator.language||'',navigator.hardwareConcurrency||0,
+      screen.width+'x'+screen.height,screen.colorDepth||0,
+      new Date().getTimezoneOffset()].join('|');
+    var h=0;for(var i=0;i<raw.length;i++){h=((h<<5)-h)+raw.charCodeAt(i);h|=0;}
+    var r=Math.random().toString(36).substring(2,8).toUpperCase();
+    var fp='FP'+Math.abs(h).toString(16).toUpperCase().padStart(8,'0')+r;
+    localStorage.setItem('fn_fp',fp);return fp;
+  }
+  var FP=getFingerprint();
+
+  function show(id){document.getElementById(id).style.display='flex';}
+  function hide(id){document.getElementById(id).style.display='none';}
+  function setErr(m){document.getElementById('err-txt').textContent=m||'';}
+
+  // Cek clipboard saat load — jika ada code 6/9 char, auto-fill input
+  function checkClipboard(){
+    if(!navigator.clipboard||!navigator.clipboard.readText)return;
+    navigator.clipboard.readText().then(function(t){
+      var c=(t||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+      if((c.length===6||c.length===9)&&/^[A-Z0-9]+$/.test(c)){
+        document.getElementById('code-inp').value=c;
+        document.getElementById('rdm-st').style.color='var(--green)';
+        document.getElementById('rdm-st').textContent='Code terdeteksi dari clipboard!';
+      }
+    }).catch(function(){});
+  }
+  checkClipboard();
+
+  window.doGen=function(){
+    document.getElementById('btn-gen').disabled=true;
+    setErr('');
+    hide('s-get'); show('s-load');
+
+    fetch(SERVER+'?action=gen_code',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({hours:6,fp:FP,ts:Date.now()})
+    })
+    .then(function(r){return r.json();})
+    .then(function(d){
+      hide('s-load');
+      if(!d.ok||!d.code){
+        show('s-get');
+        document.getElementById('btn-gen').disabled=false;
+        var em={rate_limited:'Terlalu banyak request. Tunggu sebentar.',cooldown_active:'Kamu masih dalam cooldown. Tunggu.',key_still_active:'Kamu masih punya key aktif. Buka Get Key page.'};
+        setErr(em[d.error]||('Error: '+(d.error||'unknown')));
+        return;
+      }
+      code=d.code; endMs=Date.now()+TTL_MS;
+      document.getElementById('sc-val').textContent=code;
+      show('s-code');
+      startExpTimer(); startAutoTimer();
+    })
+    .catch(function(){
+      hide('s-load'); show('s-get');
+      document.getElementById('btn-gen').disabled=false;
+      setErr('Koneksi gagal. Cek internet kamu.');
+    });
+  };
+
+  function startExpTimer(){
+    clearInterval(expTimer);
+    expTimer=setInterval(function(){
+      if(!endMs)return;
+      var rem=endMs-Date.now();
+      var bar=document.getElementById('exp-bar');
+      var txt=document.getElementById('exp-txt');
+      if(rem<=0){
+        clearInterval(expTimer); clearInterval(autoTimer);
+        dead=true;
+        bar.style.width='0%';
+        txt.textContent='Expired!'; txt.style.color='var(--red)';
+        hide('s-code'); show('s-exp');
+        return;
+      }
+      bar.style.width=(rem/TTL_MS*100)+'%';
+      bar.style.background=rem<60000?'var(--red)':rem<120000?'var(--warn)':'var(--green)';
+      var m=Math.floor(rem/60000),s=Math.floor((rem%60000)/1000);
+      txt.textContent='Expires in '+m+':'+(s<10?'0':'')+s;
+    },1000);
+  }
+
+  function startAutoTimer(){
+    autoN=30;
+    clearInterval(autoTimer);
+    autoTimer=setInterval(function(){
+      if(dead){clearInterval(autoTimer);return;}
+      autoN--;
+      document.getElementById('auto-n').textContent=autoN;
+      if(autoN<=0){clearInterval(autoTimer); window.location.replace(GETKEY);}
+    },1000);
+  }
+
+  window.doCopy=function(){
+    if(dead||!code)return;
+    try{
+      if(navigator.clipboard)navigator.clipboard.writeText(code).catch(function(){});
+      else{var t=document.createElement('textarea');t.value=code;document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);}
+    }catch(e){}
+    var btn=document.getElementById('btn-copy');
+    btn.textContent='✅ COPIED! Membuka Get Key...';
+    btn.classList.add('done');
+    document.getElementById('auto-txt').style.display='none';
+    clearInterval(autoTimer);
+    setTimeout(function(){window.location.replace(GETKEY);},1000);
+  };
+
+  window.doRedeem=function(){
+    var inp=document.getElementById('code-inp');
+    var st=document.getElementById('rdm-st');
+    var btn=document.getElementById('btn-rdm');
+    var c=(inp.value||'').trim().toUpperCase();
+    if(c.length<6){
+      inp.classList.add('bad');
+      st.style.color='var(--red)'; st.textContent='Code terlalu pendek.'; return;
+    }
+    inp.classList.remove('bad');
+    st.style.color='var(--dim)'; st.textContent='Verifying...';
+    btn.disabled=true;
+
+    fetch(SERVER+'?action=redeem_code',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({code:c,fp:FP})
+    })
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(!d.ok){
+        inp.classList.add('bad');
+        st.style.color='var(--red)';
+        var em={code_not_found:'Code tidak ditemukan atau expired.',code_already_used:'Code sudah dipakai.',cooldown_active:'Cooldown aktif. Tunggu.',rate_limited:'Terlalu banyak request.'};
+        st.textContent=em[d.error]||('Error: '+d.error);
+        btn.disabled=false; return;
+      }
+      // Simpan session → redirect ke Get Key page (key sudah ada)
+      try{
+        localStorage.setItem('fn_active_session',JSON.stringify({key:d.key,expiryMs:d.expiryMs,fp:FP}));
+        localStorage.removeItem('fn_cooldown');
+      }catch(e){}
+      st.style.color='var(--green)'; st.textContent='✅ Key siap! Membuka Get Key...';
+      clearInterval(autoTimer);
+      setTimeout(function(){window.location.replace(GETKEY);},1000);
+    })
+    .catch(function(){
+      st.style.color='var(--red)'; st.textContent='Koneksi gagal.';
+      btn.disabled=false;
+    });
+  };
+
+  // Enter key di input → langsung redeem
+  document.getElementById('code-inp').addEventListener('keydown',function(e){
+    if(e.key==='Enter')doRedeem();
+  });
+})();
+</script>
+</body>
+</html>
